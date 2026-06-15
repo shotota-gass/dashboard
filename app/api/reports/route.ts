@@ -60,7 +60,7 @@ async function dailyReport(dateStr: string) {
     byCompany[s.company] = (byCompany[s.company] ?? 0) + s.quantity;
     bySize[s.packageKg]  = (bySize[s.packageKg]  ?? 0) + s.quantity;
 
-    const emp = (s.soldBy as Record<string, string> | null)?.userId ?? "unknown";
+    const emp = (s.soldBy as unknown as Record<string, string> | null)?.userId ?? "unknown";
     const empId = String((s.soldBy as { _id?: unknown } | null)?._id ?? "unknown");
     byEmployee[empId] = byEmployee[empId] ?? { qty: 0, txns: 0, userId: emp };
     byEmployee[empId].qty  += s.quantity;
