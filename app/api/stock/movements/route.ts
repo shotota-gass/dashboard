@@ -94,8 +94,8 @@ export async function POST(req: NextRequest) {
     fullDelta  = typeof manualFull  === "number" ? manualFull  : 0;
     emptyDelta = typeof manualEmpty === "number" ? manualEmpty : 0;
   } else {
-    fullDelta  = MOVEMENT_FULL_DELTA[type]  * quantity;
-    emptyDelta = MOVEMENT_EMPTY_DELTA[type] * quantity;
+    fullDelta  = MOVEMENT_FULL_DELTA[type as MovementType]  * quantity;
+    emptyDelta = MOVEMENT_EMPTY_DELTA[type as MovementType] * quantity;
   }
 
   await connectDB();
@@ -111,6 +111,8 @@ export async function POST(req: NextRequest) {
     send_refill:      "Sent for refill",
     receive_refilled: "Received refilled",
     adjustment:       "Adjusted stock",
+    transfer_out:     "Transferred out",
+    transfer_in:      "Transferred in",
   };
   await writeLog("system", `${labels[type as MovementType]}: ${quantity}x ${kgSize}kg ${company}`, session!.user.id, { movementId: movement._id });
 

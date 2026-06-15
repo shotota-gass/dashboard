@@ -200,7 +200,7 @@ function SummaryTab() {
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#64748b" }} tickFormatter={v => format(new Date(v), "EEE d")} tickLine={false} axisLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={false} allowDecimals={false} />
-              <Tooltip formatter={(v: number) => [`${v} cylinders`, "Sold"]} contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 12 }} />
+              <Tooltip formatter={(v) => [`${v} cylinders`, "Sold"]} contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 12 }} />
               <Line type="monotone" dataKey="qty" stroke="#1e40af" strokeWidth={2} dot={{ r: 3, fill: "#1e40af" }} />
             </LineChart>
           </ResponsiveContainer>
@@ -510,7 +510,7 @@ function SalesTab() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#64748b" }} tickFormatter={v => format(new Date(v), data.dailyTrend.length > 14 ? "d MMM" : "d")} tickLine={false} axisLine={false} interval={Math.floor(data.dailyTrend.length / 7)} />
                   <YAxis tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip formatter={(v: number) => [`${v}`, "Cylinders"]} contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 12 }} />
+                  <Tooltip formatter={(v) => [`${v}`, "Cylinders"]} contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 12 }} />
                   <Bar dataKey="qty" fill="#1e40af" radius={[3, 3, 0, 0]} fillOpacity={0.85} />
                 </BarChart>
               </ResponsiveContainer>
@@ -545,7 +545,7 @@ function SalesTab() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                   <XAxis dataKey="size" tick={{ fontSize: 11, fill: "#64748b" }} tickFormatter={v => `${v}kg`} tickLine={false} axisLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: "#64748b" }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <Tooltip formatter={(v: number) => [`${v}`, "Cylinders"]} contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 12 }} />
+                  <Tooltip formatter={(v) => [`${v}`, "Cylinders"]} contentStyle={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12, fontSize: 12 }} />
                   <Bar dataKey="qty" radius={[4, 4, 0, 0]}>
                     {data.bySize.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Bar>
