@@ -123,7 +123,7 @@ async function salesReport(from: string, to: string) {
     bySize[s.packageKg]  = (bySize[s.packageKg]  ?? 0) + s.quantity;
 
     const empId  = String((s.soldBy as { _id?: unknown } | null)?._id ?? "unknown");
-    const userId = (s.soldBy as Record<string, string> | null)?.userId ?? "unknown";
+    const userId = (s.soldBy as unknown as Record<string, string> | null)?.userId ?? "unknown";
     byEmployee[empId] = byEmployee[empId] ?? { qty: 0, txns: 0, userId };
     byEmployee[empId].qty  += s.quantity;
     byEmployee[empId].txns += 1;
