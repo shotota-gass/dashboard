@@ -10,7 +10,9 @@ const MOVEMENT_FULL_DELTA: Record<MovementType, 1 | -1 | 0> = {
   return_empty:     0,
   send_refill:      0,
   receive_refilled: 1,
-  adjustment:       0, // handled separately
+  adjustment:       0,
+  transfer_out:    -1,
+  transfer_in:      1,
 };
 
 const MOVEMENT_EMPTY_DELTA: Record<MovementType, 1 | -1 | 0> = {
@@ -20,6 +22,8 @@ const MOVEMENT_EMPTY_DELTA: Record<MovementType, 1 | -1 | 0> = {
   send_refill:     -1,
   receive_refilled: 0,
   adjustment:       0,
+  transfer_out:     0,
+  transfer_in:      0,
 };
 
 export async function GET(req: NextRequest) {
