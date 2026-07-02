@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
-import { COMPANIES, KG_SIZES } from "@/lib/constants";
+import { KG_SIZES } from "@/lib/constants";
 
 export type MovementType =
   | "receive_full"
@@ -24,6 +24,7 @@ export interface IStockMovement extends Document {
   saleRef?: mongoose.Types.ObjectId;
   branchRef?: mongoose.Types.ObjectId;
   transferToBranch?: mongoose.Types.ObjectId;  // for transfer_out
+  customerRef?: mongoose.Types.ObjectId;       // for return_empty
 }
 
 const StockMovementSchema = new Schema<IStockMovement>(
@@ -34,7 +35,7 @@ const StockMovementSchema = new Schema<IStockMovement>(
       required: true,
     },
     kgSize: { type: Number, enum: KG_SIZES, required: true },
-    company: { type: String, enum: COMPANIES, required: true },
+    company: { type: String, required: true },
     quantity: { type: Number, required: true, min: 0 },
     fullDelta: { type: Number, required: true },
     emptyDelta: { type: Number, required: true },
@@ -44,6 +45,7 @@ const StockMovementSchema = new Schema<IStockMovement>(
     saleRef: { type: Schema.Types.ObjectId, ref: "Sale" },
     branchRef: { type: Schema.Types.ObjectId, ref: "Branch" },
     transferToBranch: { type: Schema.Types.ObjectId, ref: "Branch" },
+    customerRef: { type: Schema.Types.ObjectId, ref: "Customer" },
   },
   { timestamps: true }
 );

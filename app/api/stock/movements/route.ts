@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import StockMovement, { MovementType } from "@/models/StockMovement";
 import { requireRole, writeLog } from "@/lib/apiHelpers";
-import { KG_SIZES, COMPANIES } from "@/lib/constants";
+import { KG_SIZES } from "@/lib/constants";
+import { getCompanyList } from "@/lib/getCompanyList";
+import { applyStockDelta } from "@/lib/stockSync";
 
 const MOVEMENT_FULL_DELTA: Record<MovementType, 1 | -1 | 0> = {
   receive_full:     1,
@@ -79,12 +81,13 @@ export async function POST(req: NextRequest) {
   if (error) return error;
 
   const body = await req.json();
-  const { type, kgSize, company, quantity, note, fullDelta: manualFull, emptyDelta: manualEmpty } = body;
+  const { type, kgSize, company, quantity, note, customerRef, fullDelta: manualFull, emptyDelta: manualEmpty } = body;
 
   const validTypes: MovementType[] = ["receive_full", "return_empty", "send_refill", "receive_refilled", "adjustment"];
   if (!validTypes.includes(type)) return NextResponse.json({ error: "Invalid movement type" }, { status: 400 });
   if (!KG_SIZES.includes(kgSize)) return NextResponse.json({ error: "Invalid kg size" }, { status: 400 });
-  if (!COMPANIES.includes(company)) return NextResponse.json({ error: "Invalid company" }, { status: 400 });
+  const companies = await getCompanyList();
+  if (!companies.includes(company)) return NextResponse.json({ error: "Invalid company" }, { status: 400 });
   if (typeof quantity !== "number" || quantity < 1) return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
 
   let fullDelta: number;
@@ -102,7 +105,10 @@ export async function POST(req: NextRequest) {
   const movement = await StockMovement.create({
     type, kgSize, company, quantity, fullDelta, emptyDelta,
     note, recordedBy: session!.user.id, date: new Date(),
+    customerRef: customerRef || undefined,
   });
+
+  await applyStockDelta(kgSize, company, fullDelta, emptyDelta, session!.user.id);
 
   const labels: Record<MovementType, string> = {
     receive_full:     "Received full",

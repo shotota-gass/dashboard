@@ -1,11 +1,11 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
-import { COMPANIES, PACKAGE_SIZES, SALE_TYPES } from "@/lib/constants";
+import { PACKAGE_SIZES, SALE_TYPES } from "@/lib/constants";
 
 export interface ISale extends Document {
   date: Date;
   type: (typeof SALE_TYPES)[number];
   packageKg: (typeof PACKAGE_SIZES)[number];
-  company: (typeof COMPANIES)[number];
+  company: string;
   quantity: number;
   unitPrice: number;
   totalAmount: number;
@@ -21,7 +21,7 @@ const SaleSchema = new Schema<ISale>(
     date: { type: Date, required: true, default: Date.now },
     type: { type: String, enum: SALE_TYPES, required: true },
     packageKg: { type: Number, enum: PACKAGE_SIZES, required: true },
-    company: { type: String, enum: COMPANIES, required: true },
+    company: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, default: 0, min: 0 },
     totalAmount: { type: Number, default: 0, min: 0 },

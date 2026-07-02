@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useToast } from "@/components/ui/ToastProvider";
 import Modal from "@/components/ui/Modal";
 import {
   User, Lock, Users, Plus, Key, Eye, EyeOff,
   Building2, CreditCard, Percent, Pencil, Trash2, Check, X, Tag,
-  Database, Download, AlertTriangle, RefreshCw,
+  Database, Download, Upload, AlertTriangle, RefreshCw, History,
 } from "lucide-react";
 import { ROLES, ROLE_LABELS, PACKAGE_SIZES } from "@/lib/constants";
 
@@ -351,6 +352,13 @@ function UsersTab() {
                 <p className="text-xs text-gray-500 truncate">{u.email || <span className="text-gray-400">—</span>}</p>
                 <p className="text-xs text-gray-600">{ROLE_LABELS[u.role] ?? u.role}</p>
                 <div className="flex items-center gap-1">
+                  <Link
+                    href={`/dashboard/logs?user=${encodeURIComponent(u.userId)}`}
+                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    title="View History"
+                  >
+                    <History size={12} /> History
+                  </Link>
                   <button
                     onClick={() => { setResetModal(u); setResetPw(""); setResetError(""); }}
                     className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
@@ -832,6 +840,9 @@ function DatabaseTab() {
   const [backing, setBacking] = useState(false);
   const [resetPhase, setResetPhase] = useState<"idle" | "confirm" | "running">("idle");
   const [confirmText, setConfirmText] = useState("");
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restorePhase, setRestorePhase] = useState<"idle" | "confirm" | "running">("idle");
+  const [restoreConfirmText, setRestoreConfirmText] = useState("");
 
   async function loadStats() {
     setLoading(true);
@@ -861,6 +872,38 @@ function DatabaseTab() {
       toast("success", "Backup downloaded");
     } finally {
       setBacking(false);
+    }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    if (!file) return;
+    setRestoreFile(file);
+    setRestorePhase("confirm");
+    setRestoreConfirmText("");
+  }
+
+  async function handleRestore() {
+    if (!restoreFile || restoreConfirmText !== "RESTORE") return;
+    setRestorePhase("running");
+    try {
+      const text = await restoreFile.text();
+      const data = JSON.parse(text);
+      const res = await fetch("/api/settings/database/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "RESTORE", data }),
+      });
+      if (!res.ok) { toast("error", "Restore failed."); setRestorePhase("confirm"); return; }
+      toast("success", "Database restored from backup");
+      setRestorePhase("idle");
+      setRestoreFile(null);
+      setRestoreConfirmText("");
+      loadStats();
+    } catch {
+      toast("error", "Restore failed — invalid backup file.");
+      setRestorePhase("confirm");
     }
   }
 
@@ -909,7 +952,60 @@ function DatabaseTab() {
         >
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
         </button>
+        <label className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
+          <Upload size={14} /> Upload Backup
+          <input type="file" accept="application/json" className="hidden" onChange={handleFileSelect} />
+        </label>
       </div>
+
+      {/* Restore section */}
+      {restoreFile && (
+        <div className="border border-amber-200 rounded-xl p-4 bg-amber-50 mb-6">
+          <div className="flex items-start gap-3 mb-3">
+            <AlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Restore from {restoreFile.name}</p>
+              <p className="text-xs text-amber-600 mt-0.5">
+                This will overwrite existing data for every collection present in the file. This cannot be undone.
+              </p>
+            </div>
+          </div>
+
+          {restorePhase === "confirm" && (
+            <div className="space-y-3">
+              <p className="text-xs font-medium text-amber-700">Type <span className="font-mono bg-amber-100 px-1 rounded">RESTORE</span> to confirm:</p>
+              <input
+                className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 font-mono"
+                placeholder="RESTORE"
+                value={restoreConfirmText}
+                onChange={e => setRestoreConfirmText(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRestore}
+                  disabled={restoreConfirmText !== "RESTORE"}
+                  className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-40 transition-colors"
+                >
+                  Confirm Restore
+                </button>
+                <button
+                  onClick={() => { setRestorePhase("idle"); setRestoreFile(null); setRestoreConfirmText(""); }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {restorePhase === "running" && (
+            <p className="text-sm text-amber-600 flex items-center gap-2">
+              <RefreshCw size={14} className="animate-spin" /> Restoring…
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Collection stats */}
       {loading ? (

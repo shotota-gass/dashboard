@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import StockEntry from "@/models/StockEntry";
 import { requireRole, writeLog } from "@/lib/apiHelpers";
-import { KG_SIZES, COMPANIES } from "@/lib/constants";
+import { KG_SIZES } from "@/lib/constants";
+import { getCompanyList } from "@/lib/getCompanyList";
 
 // GET /api/stock — aggregate view grouped by kgSize → status → company
 export async function GET() {
@@ -37,7 +38,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { kgSize, company, status, quantity, note } = body;
 
-  if (!KG_SIZES.includes(kgSize) || !COMPANIES.includes(company) || !["full", "empty"].includes(status) || typeof quantity !== "number" || quantity < 0) {
+  const companies = await getCompanyList();
+  if (!KG_SIZES.includes(kgSize) || !companies.includes(company) || !["full", "empty"].includes(status) || typeof quantity !== "number" || quantity < 0) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 

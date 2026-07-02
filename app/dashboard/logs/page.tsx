@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import SectionHeader from "@/components/ui/SectionHeader";
 import Badge from "@/components/ui/Badge";
 import { X, ShoppingCart, Settings } from "lucide-react";
@@ -19,7 +20,8 @@ function TableSkeleton() {
   ))}</div>;
 }
 
-export default function LogsPage() {
+function LogsPageInner() {
+  const searchParams = useSearchParams();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -28,6 +30,7 @@ export default function LogsPage() {
   const [typeFilter, setTypeFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [userFilter, setUserFilter] = useState(searchParams.get("user") ?? "");
 
   const inputCls = "px-3 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-slate-500 transition-colors";
 
@@ -37,15 +40,16 @@ export default function LogsPage() {
     if (typeFilter) params.set("type", typeFilter);
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
+    if (userFilter) params.set("user", userFilter);
     const res = await fetch(`/api/logs?${params}`);
     const data = await res.json();
     setLogs(data.logs ?? []); setTotal(data.total ?? 0); setPages(data.pages ?? 1); setPage(p);
     setLoading(false);
   }
 
-  useEffect(() => { load(1); }, [typeFilter, dateFrom, dateTo]);
+  useEffect(() => { load(1); }, [typeFilter, dateFrom, dateTo, userFilter]);
 
-  const hasFilters = typeFilter || dateFrom || dateTo;
+  const hasFilters = typeFilter || dateFrom || dateTo || userFilter;
 
   return (
     <div>
@@ -69,8 +73,12 @@ export default function LogsPage() {
           <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5">To</p>
           <input type="date" className={inputCls} value={dateTo} onChange={e => setDateTo(e.target.value)} />
         </div>
+        <div>
+          <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1.5">Performed By</p>
+          <input type="text" placeholder="User ID" className={inputCls} value={userFilter} onChange={e => setUserFilter(e.target.value)} />
+        </div>
         {hasFilters && (
-          <button onClick={() => { setTypeFilter(""); setDateFrom(""); setDateTo(""); }} className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-500 hover:text-slate-800 transition-colors rounded-xl border border-slate-200 hover:bg-slate-50 bg-white shadow-sm">
+          <button onClick={() => { setTypeFilter(""); setDateFrom(""); setDateTo(""); setUserFilter(""); }} className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-500 hover:text-slate-800 transition-colors rounded-xl border border-slate-200 hover:bg-slate-50 bg-white shadow-sm">
             <X size={12} /> Clear
           </button>
         )}
@@ -113,5 +121,13 @@ export default function LogsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LogsPage() {
+  return (
+    <Suspense>
+      <LogsPageInner />
+    </Suspense>
   );
 }

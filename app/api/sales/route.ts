@@ -5,7 +5,9 @@ import StockMovement from "@/models/StockMovement";
 import Invoice from "@/models/Invoice";
 import Customer from "@/models/Customer";
 import { requireRole, writeLog } from "@/lib/apiHelpers";
-import { COMPANIES, PACKAGE_SIZES, SALE_TYPES, KG_SIZES } from "@/lib/constants";
+import { PACKAGE_SIZES, SALE_TYPES, KG_SIZES } from "@/lib/constants";
+import { getCompanyList } from "@/lib/getCompanyList";
+import { applyStockDelta } from "@/lib/stockSync";
 
 async function nextInvoiceNumber(): Promise<string> {
   const last = await Invoice.findOne({}).sort({ createdAt: -1 }).lean();
@@ -62,7 +64,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { type, packageKg, company, quantity, customerRef, branchRef, notes, date, unitPrice = 0, generateInvoice = false } = body;
 
-  if (!SALE_TYPES.includes(type) || !PACKAGE_SIZES.includes(packageKg) || !COMPANIES.includes(company) || typeof quantity !== "number" || quantity < 1) {
+  const companies = await getCompanyList();
+  if (!SALE_TYPES.includes(type) || !PACKAGE_SIZES.includes(packageKg) || !companies.includes(company) || typeof quantity !== "number" || quantity < 1) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
   if (typeof unitPrice !== "number" || unitPrice < 0) {
@@ -99,6 +102,7 @@ export async function POST(req: NextRequest) {
       branchRef: branchRef || undefined,
       date: saleDate,
     });
+    await applyStockDelta(packageKg, company, -quantity, 0, session!.user.id);
   }
 
   // Auto-generate invoice when customer is linked and caller requests it
@@ -160,6 +164,9 @@ export async function DELETE(req: NextRequest) {
   if (!sale) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await StockMovement.deleteOne({ saleRef: id });
+  if (KG_SIZES.includes(sale.packageKg as typeof KG_SIZES[number])) {
+    await applyStockDelta(sale.packageKg as typeof KG_SIZES[number], sale.company, sale.quantity, 0, session!.user.id);
+  }
 
   if (sale.invoiceRef) {
     const invoice = await Invoice.findById(sale.invoiceRef);

@@ -31,6 +31,7 @@ interface Movement {
   note?: string; date: string;
   recordedBy?: { userId: string };
 }
+interface Customer { _id: string; userId: string; fullName: string; }
 
 const inputCls = "w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm focus:outline-none focus:border-slate-500 transition-colors";
 const labelCls = "block text-xs font-medium text-slate-600 mb-1.5";
@@ -75,6 +76,7 @@ export default function StockPage() {
   const { toast } = useToast();
   const { companies } = useAppSettings();
   const [tab, setTab] = useState<Tab>("current");
+  const [customers, setCustomers] = useState<Customer[]>([]);
 
   // Current stock
   const [entries, setEntries]           = useState<StockEntry[]>([]);
@@ -106,7 +108,7 @@ export default function StockPage() {
   const [movOpen, setMovOpen]     = useState(false);
   const [movStep, setMovStep]     = useState<"pick" | "form">("pick");
   const [movType, setMovType]     = useState<MovementType | null>(null);
-  const [movForm, setMovForm]     = useState({ kgSize: 12, company: "", quantity: 1, note: "", fullDelta: 0, emptyDelta: 0 });
+  const [movForm, setMovForm]     = useState({ kgSize: 12, company: "", quantity: 1, note: "", fullDelta: 0, emptyDelta: 0, customerRef: "" });
   const [movSaving, setMovSaving] = useState(false);
   const [movError, setMovError]   = useState("");
 
@@ -141,6 +143,7 @@ export default function StockPage() {
 
   useEffect(() => { loadCurrent(); }, []);
   useEffect(() => { if (tab === "movements") loadMovements(1); }, [tab, loadMovements]);
+  useEffect(() => { fetch("/api/customers?page=1").then(r => r.json()).then(d => setCustomers(d.customers ?? [])); }, []);
 
   // ── Summary ────────────────────────────────────────────────────────────────
   let totalFull = 0, totalEmpty = 0, lowStockCount = 0;
@@ -198,6 +201,7 @@ export default function StockPage() {
       company:  movForm.company,
       quantity: Number(movForm.quantity),
       note:     movForm.note || undefined,
+      customerRef: movType === "return_empty" ? (movForm.customerRef || undefined) : undefined,
       ...(movType === "adjustment" ? { fullDelta: Number(movForm.fullDelta), emptyDelta: Number(movForm.emptyDelta) } : {}),
     };
     const res = await fetch("/api/stock/movements", {
@@ -213,7 +217,7 @@ export default function StockPage() {
 
   function openMovModal() {
     setMovOpen(true); setMovStep("pick"); setMovType(null); setMovError("");
-    setMovForm({ kgSize: 12, company: companies[0] ?? "", quantity: 1, note: "", fullDelta: 0, emptyDelta: 0 });
+    setMovForm({ kgSize: 12, company: companies[0] ?? "", quantity: 1, note: "", fullDelta: 0, emptyDelta: 0, customerRef: "" });
   }
 
   const activeMovConfig = movType ? MOV_CONFIG.find(c => c.type === movType) : null;
@@ -562,6 +566,16 @@ export default function StockPage() {
                 {companies.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+
+            {movType === "return_empty" && (
+              <div>
+                <label className={labelCls}>Customer (optional)</label>
+                <select className={inputCls} value={movForm.customerRef} onChange={e => setMovForm(p => ({ ...p, customerRef: e.target.value }))}>
+                  <option value="">— None —</option>
+                  {customers.map(c => <option key={c._id} value={c._id}>{c.fullName} ({c.userId})</option>)}
+                </select>
+              </div>
+            )}
 
             {movType === "adjustment" ? (
               <div className="grid grid-cols-2 gap-3">
